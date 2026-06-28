@@ -1,4 +1,4 @@
-name: Build APK from PWA
+name: Build APK
 
 on:
   push:
@@ -13,42 +13,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Use pwa-to-apk action
+        uses: ruzickap/action-pwa-to-apk@v1
         with:
-          node-version: '18'
-
-      - name: Install PWA Builder CLI
-        run: npm install -g @pwabuilder/cli
-
-      - name: Generate manifest and service worker (if needed)
-        # The HTML already has manifest as data-URI, but PWABuilder expects a manifest link.
-        # We'll extract it into a manifest.json for the build.
-        run: |
-          echo '{"name":"Whimsy S1","short_name":"Whimsy","start_url":".","display":"standalone","background_color":"#f9f0ff","theme_color":"#c58bcf","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23c58bcf%22/%3E%3Ctext x=%2250%22 y=%2250%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.35%22 font-family=%22Segoe UI, sans-serif%22 fill=%22white%22%3E%F0%9F%AA%BC%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml"}]}' > manifest.json
-          # Also copy sw.js to the output folder if needed.
-
-      - name: Build APK with PWABuilder
-        run: |
-          # PWABuilder needs a URL to a hosted site, but we can build locally using the package.
-          # Since we have the files locally, we'll use the "pwa2apk" tool instead.
-          npm install -g pwa2apk
-          pwa2apk --input ./ --output ./apk --name "Whimsy S1" --package "com.whimsy.s1" --icon ./icon.png
-          # However we don't have a png icon, we can create one from SVG, but we'll skip for simplicity.
-        continue-on-error: true
-
-      # Alternative: Use the PWABuilder cloud API (requires a public URL)
-      # We'll instead use a simple method: we'll create a zip and then use the online builder?
-      # Actually, we can use a GitHub Action that builds APK from a PWA using the pwabuilder CLI.
-      # Let's use the proper pwabuilder build command.
-
-      - name: Build with PWABuilder (local)
-        run: |
-          npx @pwabuilder/cli build --manifest manifest.json --fallback index.html --out ./build
-          # This creates a ./build folder with packages for various platforms.
+          app-name: 'Whimsy S1'
+          app-short-name: 'Whimsy'
+          app-package: 'com.whimsy.s1'
+          app-start-url: 'index.html'
+          app-background-color: '#f9f0ff'
+          app-theme-color: '#c58bcf'
+          # The icon is read from manifest.json
+          # So we don't need to pass it here
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: whimsy-s1-apk
-          path: ./build/android/*.apk
+          path: output/*.apk  # The action outputs APK in 'output' folder
